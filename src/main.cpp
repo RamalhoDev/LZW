@@ -3,12 +3,13 @@
 #include "../include/LZW.h"
 
 using namespace std;
-
+#define OPERATION "compress"
+#define OUTPUT_PATH "output"
 #define SIZE 4096
+
 unsigned char *buffer = new unsigned char[SIZE];
 int pos = 0; // posicao em bits
 FILE *output;
-const char *name = "output.lzw";
 
 void lerArquivo(const char *name) {
     unsigned char byte;
@@ -96,7 +97,6 @@ void salvaFim() {
     fclose(output);
 }
 
-
 int getBits(int qBits)
 {
     int value = 0;
@@ -141,76 +141,82 @@ int getBits(int qBits)
     return value;
 }
 
-
 int main(int argc, char * argv[]){
     if(argc < 2)
         throw "Missing K argument!";
     else if(argc < 3)
         throw "Missing file path!";
-    
-    string operation = "compress";
-    if(argc > 3)
-        operation = string(argv[3]);
+        
+    // Read command line arguments
+    // First argument is the length of bits to use for index encoding
+    // Second argument is the file to be compressed or decompressed
+    // Third argument is the operation to execute (compress or decompress). Default compress.
+    // Forth argument is the output path file.
 
     int K = atoi(argv[1]);
     string filePath = string(argv[2]);
+    string operation = OPERATION;
+    string outputPath = OUTPUT_PATH;
+    
+    if(argc >= 4)
+        operation = string(argv[3]);
+    if(argc >= 5)
+        outputPath = string(argv[4]);
 
+    // Create alphabet.
     vector<int> alphabet;
     for (size_t i = 0; i < 256; i++)    {
         alphabet.push_back(i);
     }
 
+    // Open input file.
+    ifstream file(filePath, ios::binary);
+    file.seekg(0, ios::end);
+    streampos fileSize = file.tellg();
+    file.seekg(0, ios::beg);
+
+    vector<u_char> fileData(fileSize); 
+    file.read((char*) &fileData[0], fileSize);
+
+
     LZW lzw = LZW(K, alphabet);
-
-
-
     if(operation == "compress"){
-        ifstream file(filePath, ios::binary);
-        file.seekg(0, ios::end);
-        streampos fileSize = file.tellg();
-        file.seekg(0, ios::beg);
+        //Compress input file
+        cout << "Compression started!\n";
+        auto compressedFile = lzw.compress(fileData);
+        cout << "Compression finished!\n";
 
-        vector<u_char> fileData(fileSize); 
-        file.read((char*) &fileData[0], fileSize);
-
-        output = fopen(name, "wb");
+        // Write to output file using k bits for each index
+        output = fopen(outputPath.c_str(), "wb");
         if (output <= 0) {
-            printf("Erro abrindo o arquivo %s\n", name);
+            printf("Erro abrindo o arquivo %s\n", outputPath.c_str());
             return -1;
         }
-        auto compressedFile = lzw.compress(fileData);
+
         for(auto index: compressedFile){
             addBits(index, K);
         }
         salvaFim();
-        lerArquivo(name);
     }else{
-        pos = 0;
-        output = fopen(filePath.c_str(), "rb");
-        if (output <= 0) {
-            printf("Erro abrindo o arquivo %s\n", name);
-            return -1;
-        }
+        //Read compressed file data
+        buffer = reinterpret_cast<u_char *>(fileData.data());
         
-        fseek(output, 0, SEEK_END);
-        int tam = ftell(output);
-        fseek(output, 0, SEEK_SET);
-        printf("tamanho do arquivo: %d\n", tam);
-        if (buffer)
-            delete buffer;
-        buffer = new unsigned char[tam];
-        fread(buffer, 1, tam, output);
-
-        vector<int> data(((tam * 8)/K)+1);
-        for (size_t i = 0; i < ((tam * 8)/K)+1; i++)
+        int indexCount = (fileSize * 8/K)+1;
+        vector<int> data(indexCount);
+        for (size_t i = 0; i < indexCount; i++)
             data[i] = getBits(K);
-
+        
+        //Execute input file decompression
+        cout << "Decompression started\n";
         auto decompressedFile = lzw.decompress(data);
+        cout << "Decompression finished\n";
+
+        // Write decompressed input file
         vector<char> newFile;
-        for(int c:decompressedFile)
+        for(int c: decompressedFile)
             newFile.push_back((char) c);
 
-        ofstream outputFile("output.txt", ios::binary | ios::out);
+        ofstream outputFile(outputPath, ios::binary | ios::out);
         
         outputFile.write((char *) &newFile[0], newFile.size());
         outputFile.close(); 

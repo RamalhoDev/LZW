@@ -11,7 +11,6 @@ add_subdirectory(src)
 
 add_executable(${this} src/main.cpp)
 
-
 target_link_libraries(${this} PUBLIC
   LZW
 )
