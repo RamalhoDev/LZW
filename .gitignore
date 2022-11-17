@@ -1,2 +1,6 @@
 .vscode/
 build/
+*.txt
+*.mp4
+*.lzw
+CMakeFiles/

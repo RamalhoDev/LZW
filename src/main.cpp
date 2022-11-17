@@ -4,7 +4,7 @@
 
 using namespace std;
 
-#define SIZE 130000000
+#define SIZE 4096
 unsigned char *buffer = new unsigned char[SIZE];
 int pos = 0; // posicao em bits
 FILE *output;
@@ -90,10 +90,55 @@ void salvaFim() {
     if (shift > 0)
         byte++;
     if (byte > 0) {
-        fwrite(buffer, 1, byte, output);
+         fwrite(buffer, 1, byte, output);
         //printf("salvei fim %d bytes\n", byte);
     }
     fclose(output);
+}
+
+
+int getBits(int qBits)
+{
+    int value = 0;
+    int byte = pos / 8; // posicao do proximo byte com bits disponiveis
+    int shift = pos % 8; // quant de bits utilizados
+    int disp = 8 - shift; // quant de bits disponiveis
+    unsigned int mask = 0;
+    int falta = qBits - disp; // bits que faltam para o proximo byte
+    int falta2 = 0; // bits que faltan para o segundo proximo byte
+    int i;
+    if (falta > 8) {
+        falta2 = falta - 8;
+        falta = 8;
+    }
+    
+    //printf("value=%3d::byte=%d, shift=%d, disp=%d, mask=%d, falta=%d, falta2=%d\n", value, byte, shift, disp, mask, falta, falta2);
+    
+    mask = 0;
+    for (i = 0 ; i < disp ; i++)
+        mask = mask | (1 << i);
+    value = (buffer[byte] & mask) << (falta + falta2);
+    //printf("mask1=0x%02X (~0x%02X)\n", mask, (~mask & 0xFF));
+
+    if (falta > 0) {
+        if (falta2 == 0)
+            value = value | ((buffer[byte + 1]) >> (8 - falta)); 
+        else
+            value = value | (buffer[byte + 1] << falta2); 
+        //printf("mask2=0x%02X (~0x%02X)\n", mask, (~mask & 0xFF));
+    }
+
+    if (falta2 > 0) {
+        //mask = 0;
+        //for (i = 0 ; i < (8 - falta2) ; i++)
+        //    mask = mask | (1 << i);
+        value = value | (buffer[byte + 2] >> (8 - falta2)); 
+        //printf("mask3=0x%02X (~0x%02X)\n", mask, (~mask & 0xFF));
+    }
+
+    pos += qBits;
+    
+    return value;
 }
 
 
@@ -102,7 +147,11 @@ int main(int argc, char * argv[]){
         throw "Missing K argument!";
     else if(argc < 3)
         throw "Missing file path!";
- 
+    
+    string operation = "compress";
+    if(argc > 3)
+        operation = string(argv[3]);
+
     int K = atoi(argv[1]);
     string filePath = string(argv[2]);
 
@@ -111,33 +160,61 @@ int main(int argc, char * argv[]){
         alphabet.push_back(i);
     }
 
-    cout << "K = " << K << endl << "Alphabet = ";
-    for(auto character : alphabet){
-         cout << character << " ";
-    }
-    cout << endl;
-
-    ifstream file(filePath, ios::binary);
-    file.seekg(0, ios::end);
-    streampos fileSize = file.tellg();
-    file.seekg(0, ios::beg);
-
-    vector<u_char> fileData(fileSize); 
-    file.read((char*) &fileData[0], fileSize);
-
     LZW lzw = LZW(K, alphabet);
-    auto compressedFile = lzw.compress(fileData);
-    output = fopen(name, "wb");
-    if (output <= 0) {
-        printf("Erro abrindo o arquivo %s\n", name);
-        return -1;
+
+
+
+    if(operation == "compress"){
+        ifstream file(filePath, ios::binary);
+        file.seekg(0, ios::end);
+        streampos fileSize = file.tellg();
+        file.seekg(0, ios::beg);
+
+        vector<u_char> fileData(fileSize); 
+        file.read((char*) &fileData[0], fileSize);
+
+        output = fopen(name, "wb");
+        if (output <= 0) {
+            printf("Erro abrindo o arquivo %s\n", name);
+            return -1;
+        }
+        auto compressedFile = lzw.compress(fileData);
+        for(auto index: compressedFile){
+            addBits(index, K);
+        }
+        salvaFim();
+        lerArquivo(name);
+    }else{
+        pos = 0;
+        output = fopen(filePath.c_str(), "rb");
+        if (output <= 0) {
+            printf("Erro abrindo o arquivo %s\n", name);
+            return -1;
+        }
+        
+        fseek(output, 0, SEEK_END);
+        int tam = ftell(output);
+        fseek(output, 0, SEEK_SET);
+        printf("tamanho do arquivo: %d\n", tam);
+        if (buffer)
+            delete buffer;
+        buffer = new unsigned char[tam];
+        fread(buffer, 1, tam, output);
+
+        vector<int> data(((tam * 8)/K)+1);
+        for (size_t i = 0; i < ((tam * 8)/K)+1; i++)
+            data[i] = getBits(K);
+
+        auto decompressedFile = lzw.decompress(data);
+        vector<char> newFile;
+        for(int c:decompressedFile)
+            newFile.push_back((char) c);
+
+        ofstream outputFile("output.txt", ios::binary | ios::out);
+        
+        outputFile.write((char *) &newFile[0], newFile.size());
+        outputFile.close(); 
     }
     
-    for(auto index: compressedFile){
-        addBits(index, K);
-    }
-    salvaFim();
-    lerArquivo(name);
-
     return 0;
 }
