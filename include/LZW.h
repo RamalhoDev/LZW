@@ -18,6 +18,7 @@ class LZW{
         LZW(int bits, std::vector<int> alphabet);
         std::vector<int> compress(std::vector<u_char> file);
         std::vector<int> decompress(std::vector<int> file);
+        int getIndexesLength() { return dictionary.size(); }
 };
 
 #endif // !LZW_H

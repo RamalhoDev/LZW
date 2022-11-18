@@ -12,10 +12,11 @@ add_subdirectory(src)
 add_executable(${this} src/main.cpp)
 
 target_link_libraries(${this} PUBLIC
+  Report
   LZW
 )
     
 target_include_directories(${this} PUBLIC 
-  ${CMAKE_SOURCE_DIR}/include/
+  include/
 )
     

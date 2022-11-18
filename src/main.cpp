@@ -1,6 +1,8 @@
 #include <iostream>
+#include <chrono>
 #include <fstream>
 #include "../include/LZW.h"
+#include "../include/Report.h"
 
 using namespace std;
 #define OPERATION "compress"
@@ -94,7 +96,7 @@ void salvaFim() {
          fwrite(buffer, 1, byte, output);
         //printf("salvei fim %d bytes\n", byte);
     }
-    fclose(output);
+    // fclose(output);
 }
 
 int getBits(int qBits)
@@ -142,10 +144,8 @@ int getBits(int qBits)
 }
 
 int main(int argc, char * argv[]){
-    if(argc < 2)
-        throw "Missing K argument!";
-    else if(argc < 3)
-        throw "Missing file path!";
+    if(argc < 3)
+        throw "Missing arguments. Example: ./iti_lzw \"path_to_file\" \"compress or decompress \"";
         
     // Read command line arguments
     // First argument is the length of bits to use for index encoding
@@ -153,13 +153,15 @@ int main(int argc, char * argv[]){
     // Third argument is the operation to execute (compress or decompress). Default compress.
     // Forth argument is the output path file.
 
-    int K = atoi(argv[1]);
-    string filePath = string(argv[2]);
+    string filePath = string(argv[1]);
     string operation = OPERATION;
     string outputPath = OUTPUT_PATH;
     
+    int K = 9;
     if(argc >= 4)
-        operation = string(argv[3]);
+        K = atoi(argv[3]);
+    if(argc >= 3)
+        operation = string(argv[2]);
     if(argc >= 5)
         outputPath = string(argv[4]);
 
@@ -183,10 +185,16 @@ int main(int argc, char * argv[]){
     if(operation == "compress"){
         //Compress input file
         cout << "Compression started!\n";
+
+        auto start = chrono::high_resolution_clock::now();
+
         auto compressedFile = lzw.compress(fileData);
+        auto end = chrono::high_resolution_clock::now();
+        double seconds = chrono::duration_cast<chrono::seconds>(end - start).count();
         cout << "Compression finished!\n";
 
         // Write to output file using k bits for each index
+        outputPath += ".lzw";
         output = fopen(outputPath.c_str(), "wb");
         if (output <= 0) {
             printf("Erro abrindo o arquivo %s\n", outputPath.c_str());
@@ -197,11 +205,17 @@ int main(int argc, char * argv[]){
             addBits(index, K);
         }
         salvaFim();
+        fseek(output, 0, SEEK_END);
+        int size = ftell(output);
+        fclose(output);
+
+        Report report = Report(outputPath, fileSize, size, lzw.getIndexesLength(), K, seconds);
+        report.writeReport();
     }else{
         //Read compressed file data
         buffer = reinterpret_cast<u_char *>(fileData.data());
         
-        int indexCount = (fileSize * 8/K)+1;
+        int indexCount = (fileSize * 8/K);
         vector<int> data(indexCount);
         for (size_t i = 0; i < indexCount; i++)
             data[i] = getBits(K);

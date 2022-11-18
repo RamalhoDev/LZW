@@ -40,7 +40,7 @@ std::vector<int> LZW::compress(std::vector<u_char> file){
 std::vector<int> LZW::decompress(std::vector<int> file){
     std::vector<int> decompressedFile;
     std::vector<int> previous;
-    file.pop_back();
+
     for (int entry : file){
         std::vector<int> decodedMessage;
         if(indexDictionary.size() <= entry){
