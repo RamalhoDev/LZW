@@ -3,6 +3,8 @@
 #include <fstream>
 #include "../include/LZW.h"
 #include "../include/Report.h"
+#include <argparse/argparse.hpp>
+
 
 using namespace std;
 #define OPERATION "compress"
@@ -144,28 +146,33 @@ int getBits(int qBits)
 }
 
 int main(int argc, char * argv[]){
-    if(argc < 3)
-        throw "Missing arguments. Example: ./iti_lzw \"path_to_file\" \"compress or decompress \"";
-        
+    argparse::ArgumentParser program("iti_lzw");
+    program.add_argument("-i", "--input").required().help("Path to input file.");    
+    program.add_argument("operation").help("Mode: 'compress' or 'decompress'.").default_value(std::string("compress"));    
+    program.add_argument("-o", "--output").help("Output path.").default_value(std::string("a.out"));
+    program.add_argument("dict_path").default_value(std::string("a.dict")).help("Read a dict file.");
+    program.add_argument("number_of_bits").default_value(9).help("Number of bits.").scan<'i', int>();    
+
+    try {  
+        program.parse_args(argc, argv);
+    }catch(const std::runtime_error& err){
+        std::cerr << err.what() << std::endl;
+        std::cerr << program;
+        std::exit(1);
+    }
+  
     // Read command line arguments
     // First argument is the length of bits to use for index encoding
     // Second argument is the file to be compressed or decompressed
     // Third argument is the operation to execute (compress or decompress). Default compress.
     // Forth argument is the output path file.
 
-    string filePath = string(argv[1]);
-    string operation = OPERATION;
-    string outputPath = OUTPUT_PATH;
-    string dictPath = "";
-    int K = 9;
-    if(argc >= 4)
-        K = atoi(argv[3]);
-    if(argc >= 3)
-        operation = string(argv[2]);
-    if(argc >= 5)
-        outputPath = string(argv[4]);
-    if(argc >= 6)
-        dictPath = string(argv[5]);
+    string filePath = program.get<std::string>("--input");
+    string operation = program.get<std::string>("operation");
+    string outputPath = program.get<std::string>("--output");
+    string dictPath = program.get<std::string>("-d");
+    int K = program.get<int>("k");
+
     // Create alphabet.
     vector<int> alphabet;
     for (size_t i = 0; i < 256; i++)    {

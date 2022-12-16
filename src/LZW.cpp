@@ -38,6 +38,16 @@ std::vector<int> LZW::compress(std::vector<u_char> file){
 }
 
 void LZW::write_dictionary(std::string file_path){
+  FILE* fp = fopen(file_path.c_str(), "w+b");
+  for(auto dict_index_pair : this->dictionary){
+    fwrite(&dict_index_pair.second, sizeof dict_index_pair.second, 1, fp);
+    auto dict_size = dict_index_pair.first.size();
+    fwrite(&dict_size, sizeof dict_size, 1, fp);
+    for(int character: dict_index_pair.first){
+      fwrite(&character, sizeof character, 1, fp);
+    }
+  }
+  fclose(fp);
   return;
 }
 
