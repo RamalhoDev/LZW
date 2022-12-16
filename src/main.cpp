@@ -170,8 +170,8 @@ int main(int argc, char * argv[]){
     string filePath = program.get<std::string>("--input");
     string operation = program.get<std::string>("operation");
     string outputPath = program.get<std::string>("--output");
-    string dictPath = program.get<std::string>("-d");
-    int K = program.get<int>("k");
+    string dictPath = program.get<std::string>("dict_path");
+    int K = program.get<int>("number_of_bits");
 
     // Create alphabet.
     vector<int> alphabet;
