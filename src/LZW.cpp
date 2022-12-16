@@ -37,6 +37,10 @@ std::vector<int> LZW::compress(std::vector<u_char> file){
     return compressedFile;
 }
 
+void LZW::write_dictionary(std::string file_path){
+  return;
+}
+
 std::vector<int> LZW::decompress(std::vector<int> file){
     std::vector<int> decompressedFile;
     std::vector<int> previous;

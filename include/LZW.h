@@ -19,6 +19,7 @@ class LZW{
         std::vector<int> compress(std::vector<u_char> file);
         std::vector<int> decompress(std::vector<int> file);
         int getIndexesLength() { return dictionary.size(); }
+        void write_dictionary(std::string file_path);
 };
 
 #endif // !LZW_H

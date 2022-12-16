@@ -156,7 +156,7 @@ int main(int argc, char * argv[]){
     string filePath = string(argv[1]);
     string operation = OPERATION;
     string outputPath = OUTPUT_PATH;
-    
+    string dictPath = "";
     int K = 9;
     if(argc >= 4)
         K = atoi(argv[3]);
@@ -164,7 +164,8 @@ int main(int argc, char * argv[]){
         operation = string(argv[2]);
     if(argc >= 5)
         outputPath = string(argv[4]);
-
+    if(argc >= 6)
+        dictPath = string(argv[5]);
     // Create alphabet.
     vector<int> alphabet;
     for (size_t i = 0; i < 256; i++)    {
@@ -208,6 +209,10 @@ int main(int argc, char * argv[]){
         fseek(output, 0, SEEK_END);
         int size = ftell(output);
         fclose(output);
+
+        if(dictPath != ""){
+          lzw.write_dictionary(dictPath);
+        }
 
         Report report = Report(outputPath, fileSize, size, lzw.getIndexesLength(), K, seconds);
         report.writeReport();
