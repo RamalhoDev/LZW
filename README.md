@@ -22,5 +22,5 @@ O arquivo possui 4 argumentos disponíveis:
 Comando dentro do build:
 
 ```
-./iti_lzw caminho_para_arquivo_de_entrada operação número_de_bits  caminho_para_arquivo_de_saída
+./iti_lzw caminho_para_arquivo_de_entrada operação número_de_bits caminho_para_arquivo_de_saída caminho_para_escrever_dicionario
 ```
