@@ -36,19 +36,40 @@ std::vector<int> LZW::compress(std::vector<u_char> file){
     
     return compressedFile;
 }
+void LZW::writeDictionary(std::string filePath){
+  std::ofstream file(filePath, std::ios::out | std::ios::binary);
 
-void LZW::write_dictionary(std::string file_path){
-  FILE* fp = fopen(file_path.c_str(), "w+b");
   for(auto dict_index_pair : this->dictionary){
-    fwrite(&dict_index_pair.second, sizeof dict_index_pair.second, 1, fp);
+    file.write(reinterpret_cast<const char *> (&dict_index_pair.second),sizeof(dict_index_pair.second));
     auto dict_size = dict_index_pair.first.size();
-    fwrite(&dict_size, sizeof dict_size, 1, fp);
-    for(int character: dict_index_pair.first){
-      fwrite(&character, sizeof character, 1, fp);
-    }
+    file.write(reinterpret_cast<const char *> (&dict_size), sizeof(dict_size));
+    file.write((char*)&dict_index_pair.first[0], dict_index_pair.first.size() * sizeof(int));
   }
-  fclose(fp);
+  file.close();
   return;
+}
+
+void LZW::readDictionary(std::string filePath){
+    this->staticDict = true;
+    std::ifstream input(filePath, std::ios::binary );
+    
+    input.seekg(0, std::ios::end);
+    std::streampos size = input.tellg();
+    input.seekg(0, std::ios::beg);
+
+    int index = -1;
+    int sizeVector = -1;
+    this->indexDictionary = std::vector<std::vector<int>>(this->dictionaryLength);
+    while(input.tellg() < size){
+
+        input.read(reinterpret_cast<char*>(&index), sizeof(int));
+        input.read(reinterpret_cast<char*>(&sizeVector), sizeof(size_t));
+        std::vector<int> characters(sizeVector);
+        input.read(reinterpret_cast<char*>(&characters[0]), sizeof(int) * sizeVector);
+
+        this->dictionary[characters] = index;
+        this->indexDictionary[index] = characters;
+    }
 }
 
 std::vector<int> LZW::decompress(std::vector<int> file){

@@ -4,8 +4,10 @@
 #include <map>
 #include <math.h>
 #include <iostream>
+#include <fstream>
 
 class LZW{
+    bool staticDict;
     int bits;
     int nextIndex;
     int dictionaryLength;
@@ -19,7 +21,8 @@ class LZW{
         std::vector<int> compress(std::vector<u_char> file);
         std::vector<int> decompress(std::vector<int> file);
         int getIndexesLength() { return dictionary.size(); }
-        void write_dictionary(std::string file_path);
+        void writeDictionary(std::string filePath);
+        void readDictionary(std::string filePath);
 };
 
 #endif // !LZW_H

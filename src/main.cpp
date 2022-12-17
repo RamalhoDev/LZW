@@ -148,10 +148,10 @@ int getBits(int qBits)
 int main(int argc, char * argv[]){
     argparse::ArgumentParser program("iti_lzw");
     program.add_argument("-i", "--input").required().help("Path to input file.");    
-    program.add_argument("operation").help("Mode: 'compress' or 'decompress'.").default_value(std::string("compress"));    
+    program.add_argument("--operation").help("Mode: 'compress' or 'decompress'.").default_value(std::string("compress"));    
     program.add_argument("-o", "--output").help("Output path.").default_value(std::string("a.out"));
-    program.add_argument("dict_path").default_value(std::string("a.dict")).help("Read a dict file.");
-    program.add_argument("number_of_bits").default_value(9).help("Number of bits.").scan<'i', int>();    
+    program.add_argument("--dict_path").default_value(std::string("a.dict")).help("Read a dict file.");
+    program.add_argument("--number_of_bits").default_value(9).help("Number of bits.").scan<'i', int>();    
 
     try {  
         program.parse_args(argc, argv);
@@ -168,10 +168,10 @@ int main(int argc, char * argv[]){
     // Forth argument is the output path file.
 
     string filePath = program.get<std::string>("--input");
-    string operation = program.get<std::string>("operation");
+    string operation = program.get<std::string>("--operation");
     string outputPath = program.get<std::string>("--output");
-    string dictPath = program.get<std::string>("dict_path");
-    int K = program.get<int>("number_of_bits");
+    string dictPath = program.get<std::string>("--dict_path");
+    int K = program.get<int>("--number_of_bits");
 
     // Create alphabet.
     vector<int> alphabet;
@@ -218,7 +218,7 @@ int main(int argc, char * argv[]){
         fclose(output);
 
         if(dictPath != ""){
-          lzw.write_dictionary(dictPath);
+          lzw.writeDictionary(dictPath);
         }
 
         Report report = Report(outputPath, fileSize, size, lzw.getIndexesLength(), K, seconds);
@@ -227,6 +227,11 @@ int main(int argc, char * argv[]){
         //Read compressed file data
         buffer = reinterpret_cast<u_char *>(fileData.data());
         
+        if(dictPath != ""){
+          lzw.readDictionary(dictPath);
+          return 0;
+        }
+
         int indexCount = (fileSize * 8/K);
         vector<int> data(indexCount);
         for (size_t i = 0; i < indexCount; i++)
