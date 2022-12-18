@@ -188,18 +188,21 @@ int main(int argc, char * argv[]){
     vector<u_char> fileData(fileSize); 
     file.read((char*) &fileData[0], fileSize);
 
-
     LZW lzw = LZW(K, alphabet);
     if(operation == "compress"){
+        if(dictPath != ""){
+          lzw.readDictionary(dictPath);
+        }
+
         //Compress input file
-        cout << "Compression started!\n";
+        // cout << "Compression started!\n"; 
 
         auto start = chrono::high_resolution_clock::now();
 
         auto compressedFile = lzw.compress(fileData);
         auto end = chrono::high_resolution_clock::now();
         double seconds = chrono::duration_cast<chrono::seconds>(end - start).count();
-        cout << "Compression finished!\n";
+        // cout << "Compression finished!\n";
 
         // Write to output file using k bits for each index
         outputPath += ".lzw";
@@ -217,9 +220,9 @@ int main(int argc, char * argv[]){
         int size = ftell(output);
         fclose(output);
 
-        if(dictPath != ""){
-          lzw.writeDictionary(dictPath);
-        }
+        // if(dictPath != ""){
+        //   lzw.writeDictionary(dictPath);
+        // }
 
         Report report = Report(outputPath, fileSize, size, lzw.getIndexesLength(), K, seconds);
         report.writeReport();
@@ -229,7 +232,6 @@ int main(int argc, char * argv[]){
         
         if(dictPath != ""){
           lzw.readDictionary(dictPath);
-          return 0;
         }
 
         int indexCount = (fileSize * 8/K);

@@ -70,6 +70,7 @@ void LZW::readDictionary(std::string filePath){
         this->dictionary[characters] = index;
         this->indexDictionary[index] = characters;
     }
+    this->nextIndex = this->dictionaryLength;
 }
 
 std::vector<int> LZW::decompress(std::vector<int> file){
