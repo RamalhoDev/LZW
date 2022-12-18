@@ -1,148 +1,150 @@
-#include <iostream>
+#include <argparse/argparse.hpp>
 #include <chrono>
 #include <fstream>
+#include <iostream>
 #include "../include/LZW.h"
 #include "../include/Report.h"
-#include <argparse/argparse.hpp>
-
 
 using namespace std;
 #define OPERATION "compress"
 #define OUTPUT_PATH "output"
 #define SIZE 4096
 
-unsigned char *buffer = new unsigned char[SIZE];
-int pos = 0; // posicao em bits
-FILE *output;
+unsigned char* buffer = new unsigned char[SIZE];
+int pos = 0;  // posicao em bits
+FILE* output;
 
-void lerArquivo(const char *name) {
-    unsigned char byte;
-    FILE *input = fopen(name, "rb");
-    if (input <= 0) {
-        printf("Erro abrindo o arquivo %s\n", name);
-        return;
-    }
-    
-    while (!feof(input)) {
-        fread(&byte, 1, 1, input);
-        if (feof(input))
-            break;
-        printf("0x%02X ", byte);
-    }
-    printf("\n");
-    fclose(input);
+void lerArquivo(const char* name) {
+	unsigned char byte;
+	FILE* input = fopen(name, "rb");
+	if (input <= 0) {
+		printf("Erro abrindo o arquivo %s\n", name);
+		return;
+	}
+
+	while (!feof(input)) {
+		fread(&byte, 1, 1, input);
+		if (feof(input))
+			break;
+		printf("0x%02X ", byte);
+	}
+	printf("\n");
+	fclose(input);
 }
 
-void addBits(int value, int qBits)
-{
-    int byte = pos / 8; // posicao do proximo byte com bits disponiveis
-    int shift = pos % 8; // quant de bits utilizados
-    int disp = 8 - shift; // quant de bits disponiveis
-    unsigned int mask = 0;
-    int falta = qBits - disp; // bits que faltam para o proximo byte
-    int falta2 = 0; // bits que faltan para o segundo proximo byte
-    int i;
-    if (falta > 8) {
-        falta2 = falta - 8;
-        falta = 8;
-    }
-    
-    //printf("value=%3d::byte=%d, shift=%d, disp=%d, mask=%d, falta=%d, falta2=%d\n", value, byte, shift, disp, mask, falta, falta2);
-    
-    mask = 0;
-    for (i = 0 ; i < disp ; i++)
-        mask = mask | (1 << i);
-    buffer[byte] = (buffer[byte] & (~mask & 0xFF)) | ((value >> (falta + falta2)) & mask);
-    //printf("mask1=0x%02X (~0x%02X)\n", mask, (~mask & 0xFF));
+void addBits(int value, int qBits) {
+	int byte = pos / 8;	   // posicao do proximo byte com bits disponiveis
+	int shift = pos % 8;   // quant de bits utilizados
+	int disp = 8 - shift;  // quant de bits disponiveis
+	unsigned int mask = 0;
+	int falta = qBits - disp;  // bits que faltam para o proximo byte
+	int falta2 = 0;			   // bits que faltan para o segundo proximo byte
+	int i;
+	if (falta > 8) {
+		falta2 = falta - 8;
+		falta = 8;
+	}
 
-    if (falta > 0) {
-        mask = 0;
-        for (i = 0 ; i < (8 - falta) ; i++)
-            mask = mask | (1 << i);
-        if (falta2 == 0)
-            buffer[byte + 1] = (buffer[byte + 1] & mask) | ( (value << (8 - falta)) & (~mask & 0xFF));
-        else
-            buffer[byte + 1] = ((value >> falta2) & 0xFF);
-        //printf("mask2=0x%02X (~0x%02X)\n", mask, (~mask & 0xFF));
-    }
+	// printf("value=%3d::byte=%d, shift=%d, disp=%d, mask=%d, falta=%d,
+	// falta2=%d\n", value, byte, shift, disp, mask, falta, falta2);
 
-    if (falta2 > 0) {
-        mask = 0;
-        for (i = 0 ; i < (8 - falta2) ; i++)
-            mask = mask | (1 << i);
-        buffer[byte + 2] = (buffer[byte + 2] & mask) | ((value << (8 - falta2)) & (~mask & 0xFF)); 
-        //printf("mask3=0x%02X (~0x%02X)\n", mask, (~mask & 0xFF));
-    }
+	mask = 0;
+	for (i = 0; i < disp; i++)
+		mask = mask | (1 << i);
+	buffer[byte] =
+		(buffer[byte] & (~mask & 0xFF)) | ((value >> (falta + falta2)) & mask);
+	// printf("mask1=0x%02X (~0x%02X)\n", mask, (~mask & 0xFF));
 
-    pos += qBits;
+	if (falta > 0) {
+		mask = 0;
+		for (i = 0; i < (8 - falta); i++)
+			mask = mask | (1 << i);
+		if (falta2 == 0)
+			buffer[byte + 1] = (buffer[byte + 1] & mask) |
+							   ((value << (8 - falta)) & (~mask & 0xFF));
+		else
+			buffer[byte + 1] = ((value >> falta2) & 0xFF);
+		// printf("mask2=0x%02X (~0x%02X)\n", mask, (~mask & 0xFF));
+	}
 
-    // Adicionado para salvar os bytes as poucos.
-    byte = pos / 8; // posicao do proximo byte com bits disponiveis
-    if (byte >= SIZE - 3) {
-        fwrite(buffer, 1, byte, output);
-        //printf("salvei %d bytes\n", byte);
-        pos -= byte * 8;
-        shift = pos % 8; // quant de bits utilizados
-        for (i = 0 ; i < (8-shift) ; i++)
-            mask = mask | (1 << i);
-        buffer[0] = buffer[byte] & ~mask;
-    }
+	if (falta2 > 0) {
+		mask = 0;
+		for (i = 0; i < (8 - falta2); i++)
+			mask = mask | (1 << i);
+		buffer[byte + 2] = (buffer[byte + 2] & mask) |
+						   ((value << (8 - falta2)) & (~mask & 0xFF));
+		// printf("mask3=0x%02X (~0x%02X)\n", mask, (~mask & 0xFF));
+	}
+
+	pos += qBits;
+
+	// Adicionado para salvar os bytes as poucos.
+	byte = pos / 8;	 // posicao do proximo byte com bits disponiveis
+	if (byte >= SIZE - 3) {
+		fwrite(buffer, 1, byte, output);
+		// printf("salvei %d bytes\n", byte);
+		pos -= byte * 8;
+		shift = pos % 8;  // quant de bits utilizados
+		for (i = 0; i < (8 - shift); i++)
+			mask = mask | (1 << i);
+		buffer[0] = buffer[byte] & ~mask;
+	}
 }
 
 void salvaFim() {
-    int byte = pos / 8; // posicao do proximo byte com bits disponiveis
-    int shift = pos % 8;
-    if (shift > 0)
-        byte++;
-    if (byte > 0) {
-         fwrite(buffer, 1, byte, output);
-        //printf("salvei fim %d bytes\n", byte);
-    }
-    // fclose(output);
+	int byte = pos / 8;	 // posicao do proximo byte com bits disponiveis
+	int shift = pos % 8;
+	if (shift > 0)
+		byte++;
+	if (byte > 0) {
+		fwrite(buffer, 1, byte, output);
+		// printf("salvei fim %d bytes\n", byte);
+	}
+	// fclose(output);
 }
 
-int getBits(int qBits)
-{
-    int value = 0;
-    int byte = pos / 8; // posicao do proximo byte com bits disponiveis
-    int shift = pos % 8; // quant de bits utilizados
-    int disp = 8 - shift; // quant de bits disponiveis
-    unsigned int mask = 0;
-    int falta = qBits - disp; // bits que faltam para o proximo byte
-    int falta2 = 0; // bits que faltan para o segundo proximo byte
-    int i;
-    if (falta > 8) {
-        falta2 = falta - 8;
-        falta = 8;
-    }
-    
-    //printf("value=%3d::byte=%d, shift=%d, disp=%d, mask=%d, falta=%d, falta2=%d\n", value, byte, shift, disp, mask, falta, falta2);
-    
-    mask = 0;
-    for (i = 0 ; i < disp ; i++)
-        mask = mask | (1 << i);
-    value = (buffer[byte] & mask) << (falta + falta2);
-    //printf("mask1=0x%02X (~0x%02X)\n", mask, (~mask & 0xFF));
+int getBits(int qBits) {
+	int value = 0;
+	int byte = pos / 8;	   // posicao do proximo byte com bits disponiveis
+	int shift = pos % 8;   // quant de bits utilizados
+	int disp = 8 - shift;  // quant de bits disponiveis
+	unsigned int mask = 0;
+	int falta = qBits - disp;  // bits que faltam para o proximo byte
+	int falta2 = 0;			   // bits que faltan para o segundo proximo byte
+	int i;
+	if (falta > 8) {
+		falta2 = falta - 8;
+		falta = 8;
+	}
 
-    if (falta > 0) {
-        if (falta2 == 0)
-            value = value | ((buffer[byte + 1]) >> (8 - falta)); 
-        else
-            value = value | (buffer[byte + 1] << falta2); 
-        //printf("mask2=0x%02X (~0x%02X)\n", mask, (~mask & 0xFF));
-    }
+	// printf("value=%3d::byte=%d, shift=%d, disp=%d, mask=%d, falta=%d,
+	// falta2=%d\n", value, byte, shift, disp, mask, falta, falta2);
 
-    if (falta2 > 0) {
-        //mask = 0;
-        //for (i = 0 ; i < (8 - falta2) ; i++)
-        //    mask = mask | (1 << i);
-        value = value | (buffer[byte + 2] >> (8 - falta2)); 
-        //printf("mask3=0x%02X (~0x%02X)\n", mask, (~mask & 0xFF));
-    }
+	mask = 0;
+	for (i = 0; i < disp; i++)
+		mask = mask | (1 << i);
+	value = (buffer[byte] & mask) << (falta + falta2);
+	// printf("mask1=0x%02X (~0x%02X)\n", mask, (~mask & 0xFF));
 
-    pos += qBits;
-    
-    return value;
+	if (falta > 0) {
+		if (falta2 == 0)
+			value = value | ((buffer[byte + 1]) >> (8 - falta));
+		else
+			value = value | (buffer[byte + 1] << falta2);
+		// printf("mask2=0x%02X (~0x%02X)\n", mask, (~mask & 0xFF));
+	}
+
+	if (falta2 > 0) {
+		// mask = 0;
+		// for (i = 0 ; i < (8 - falta2) ; i++)
+		//     mask = mask | (1 << i);
+		value = value | (buffer[byte + 2] >> (8 - falta2));
+		// printf("mask3=0x%02X (~0x%02X)\n", mask, (~mask & 0xFF));
+	}
+
+	pos += qBits;
+
+	return value;
 }
 
 int main(int argc, char * argv[]){
@@ -240,9 +242,9 @@ int main(int argc, char * argv[]){
             data[i] = getBits(K);
         
         //Execute input file decompression
-        cout << "Decompression started\n";
+        // cout << "Decompression started\n";
         auto decompressedFile = lzw.decompress(data);
-        cout << "Decompression finished\n";
+        // cout << "Decompression finished\n";
 
         // Write decompressed input file
         vector<char> newFile;
