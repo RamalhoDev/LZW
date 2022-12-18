@@ -80,8 +80,8 @@ for i in tqdm.tqdm(range(9, 17)):
             result['index'] = i
             result['fp'] = file_path
             result['cat'] = category
+            result['certo'] = "anger"
             resultadao.append(result)
-
         for file_path in tqdm.tqdm(sadnessX_test, leave=False):
             args = f"./build/iti_lzw -i {file_path} --operation compress --number_of_bits {i} --dict_path dictionaries/{category}/{category}_{i}.dict -o results/{category}_{i}.out".split(' ')
             subprocess.call(args)
@@ -90,6 +90,7 @@ for i in tqdm.tqdm(range(9, 17)):
             result['index'] = i
             result['fp'] = file_path
             result['cat'] = category
+            result['certo'] = "sadness"
             resultadao.append(result)
 
         for file_path in tqdm.tqdm(fearX_test, leave=False):
@@ -100,6 +101,7 @@ for i in tqdm.tqdm(range(9, 17)):
             result['index'] = i
             result['fp'] = file_path
             result['cat'] = category
+            result['certo'] = "fear"
             resultadao.append(result)
 
         for file_path in tqdm.tqdm(happyX_test, leave=False):
@@ -110,6 +112,7 @@ for i in tqdm.tqdm(range(9, 17)):
             result['index'] = i
             result['fp'] = file_path
             result['cat'] = category
+            result['certo'] = "happy"
             resultadao.append(result)
 
 result_df = pd.DataFrame(resultadao)
